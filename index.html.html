@@ -1,0 +1,755 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>مستودعات سيبكو – اللاذقية</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',Tahoma,Arial,sans-serif;background:#EEF2F7;color:#222;min-height:100vh}
+.hdr{background:linear-gradient(135deg,#1F3864,#2E75B6);color:#fff;padding:14px 16px;
+  display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(0,0,0,.25)}
+.hdr-logo{font-size:26px}
+.hdr-text h1{font-size:16px;font-weight:700}
+.hdr-text p{font-size:11px;opacity:.8}
+.hdr-right{margin-right:auto;display:flex;align-items:center;gap:10px}
+.hdr-count{background:rgba(255,255,255,.2);border-radius:8px;padding:5px 12px;text-align:center;font-size:11px;line-height:1.4}
+.hdr-count b{display:block;font-size:17px}
+.hdr-menu{background:rgba(255,255,255,.15);border:none;color:#fff;padding:7px 10px;
+  border-radius:8px;cursor:pointer;font-size:18px}
+
+/* UPLOAD */
+.upload-screen{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;padding:24px;text-align:center}
+.upload-box{background:#fff;border-radius:16px;padding:40px 32px;max-width:480px;width:100%;
+  box-shadow:0 4px 24px rgba(0,0,0,.1);border:3px dashed #D0D9E8;transition:.2s;cursor:pointer}
+.upload-box:hover,.upload-box.drag{border-color:#2E75B6;background:#F0F7FF}
+.upload-icon{font-size:56px;margin-bottom:16px}
+.upload-title{font-size:20px;font-weight:700;color:#1F3864;margin-bottom:8px}
+.upload-sub{font-size:13px;color:#888;margin-bottom:24px;line-height:1.7}
+.btn-upload{padding:12px 32px;background:#1F3864;color:#fff;border:none;border-radius:10px;
+  font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:.2s}
+.btn-upload:hover{background:#2E75B6}
+.upload-hint{margin-top:12px;font-size:12px;color:#aaa}
+.local-info{margin-top:20px;background:#E8F5E9;border-radius:10px;padding:12px 16px;
+  font-size:13px;color:#375623;display:none}
+#fileInput{display:none}
+
+/* PROGRESS */
+.progress-screen{display:none;flex-direction:column;align-items:center;justify-content:center;min-height:70vh;padding:24px;text-align:center}
+.prog-box{background:#fff;border-radius:16px;padding:40px 32px;max-width:380px;width:100%;box-shadow:0 4px 24px rgba(0,0,0,.1)}
+.prog-icon{font-size:48px;margin-bottom:16px}
+.prog-title{font-size:16px;font-weight:700;color:#1F3864;margin-bottom:20px}
+.prog-bar{height:8px;background:#EEF2F7;border-radius:4px;overflow:hidden;margin-bottom:10px}
+.prog-fill{height:100%;background:linear-gradient(90deg,#2E75B6,#1F3864);border-radius:4px;transition:width .3s}
+.prog-txt{font-size:13px;color:#888}
+
+/* APP */
+.app-screen{display:none}
+.spanel{background:#fff;padding:14px 16px;border-bottom:2px solid #D0D9E8;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+.spanel-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.spanel-title{font-size:13px;font-weight:700;color:#1F3864}
+.btn-change{font-size:12px;color:#2E75B6;background:none;border:none;cursor:pointer;text-decoration:underline}
+.srow{display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end}
+.sg{display:flex;flex-direction:column;gap:4px;flex:1;min-width:140px}
+.sg label{font-size:11px;font-weight:600;color:#555}
+.sg select,.sg input{width:100%;padding:9px 12px;border:2px solid #D0D9E8;border-radius:8px;
+  font-size:13px;font-family:inherit;direction:rtl;outline:none;background:#fff;transition:.2s;color:#222}
+.sg select:focus,.sg input:focus{border-color:#2E75B6;box-shadow:0 0 0 3px rgba(46,117,182,.12)}
+.kw-rel{position:relative}
+.kw-rel input{padding-left:34px}
+.kw-x{position:absolute;left:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:#bbb;font-size:15px;display:none;background:none;border:none}
+.btn-go{padding:9px 24px;background:#1F3864;color:#fff;border:none;border-radius:8px;
+  font-size:14px;font-weight:700;cursor:pointer;font-family:inherit;align-self:flex-end;white-space:nowrap;transition:.2s}
+.btn-go:hover{background:#2E75B6}
+.btn-rst{padding:9px 14px;background:#EEF2F7;color:#555;border:2px solid #D0D9E8;
+  border-radius:8px;font-size:13px;cursor:pointer;font-family:inherit;align-self:flex-end}
+.rbar{padding:9px 16px;font-size:13px;font-weight:600;display:none;border-bottom:1px solid #D0D9E8}
+.content{padding:14px;max-width:1100px;margin:0 auto}
+
+/* CARDS */
+.wh-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(165px,1fr));gap:10px;margin-bottom:14px}
+.wh-card{background:#fff;border-radius:10px;padding:14px;cursor:pointer;
+  border-top:4px solid #ccc;box-shadow:0 1px 6px rgba(0,0,0,.08);transition:.2s}
+.wh-card:hover{transform:translateY(-2px);box-shadow:0 4px 14px rgba(0,0,0,.12)}
+.wh-card.sel{transform:translateY(-2px)}
+.wh-icon{font-size:24px;margin-bottom:6px}
+.wh-name{font-size:13px;font-weight:700}
+.wh-cnt{font-size:11px;color:#888;margin-top:3px}
+
+/* SECTIONS */
+.sec-box{background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.08);margin-bottom:14px}
+.sec-hdr{padding:10px 14px;font-weight:700;font-size:13px;color:#fff}
+.sec-chips{padding:10px 12px;display:flex;flex-wrap:wrap;gap:7px}
+.chip{padding:6px 12px;border-radius:20px;font-size:12px;cursor:pointer;
+  border:2px solid transparent;font-weight:500;transition:.15s;white-space:nowrap}
+.chip:hover{opacity:.8}
+
+/* TABLE */
+.tbl-box{background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 1px 6px rgba(0,0,0,.08)}
+.tbl-top{padding:10px 14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid #EEF2F7}
+.tbl-ttl{font-size:13px;font-weight:700}
+.tbl-cnt{font-size:11px;background:#EEF2F7;padding:3px 10px;border-radius:20px;color:#555}
+.tbl-scroll{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:#1F3864;color:#fff;padding:9px 10px;text-align:center;font-weight:600;font-size:12px}
+th.nc{text-align:right}
+tbody tr{border-bottom:1px solid #F2F2F2;transition:.1s}
+tbody tr:hover{background:#F5F9FF}
+tbody tr:nth-child(even){background:#FAFAFA}
+tbody tr:nth-child(even):hover{background:#EEF5FF}
+td{padding:8px 10px;vertical-align:middle}
+td.i{text-align:center;color:#bbb;font-size:11px;width:40px}
+td.c{font-family:'Courier New',monospace;font-size:12px;color:#1F3864;text-align:center;width:110px;font-weight:600}
+td.n{font-size:13px}
+td.u{text-align:center;width:65px;color:#888;font-size:12px}
+td.s{text-align:center;font-size:11px;color:#aaa}
+td.w{text-align:center;font-size:11px;color:#aaa}
+mark{background:#FFE082;border-radius:2px;padding:0 1px}
+
+/* PAGER */
+.pager{display:flex;justify-content:center;align-items:center;gap:6px;padding:12px;flex-wrap:wrap}
+.pb{padding:6px 12px;border:2px solid #D0D9E8;border-radius:7px;background:#fff;cursor:pointer;font-size:12px;transition:.15s;font-family:inherit}
+.pb:hover{border-color:#2E75B6;color:#2E75B6}
+.pb.a{background:#1F3864;color:#fff;border-color:#1F3864}
+.pb:disabled{opacity:.35;cursor:not-allowed}
+.pi{font-size:12px;color:#888}
+.empty{text-align:center;padding:48px 16px;color:#bbb}
+.empty-icon{font-size:48px;margin-bottom:12px}
+
+/* SIDE MENU */
+.side-menu{position:fixed;top:0;right:0;height:100vh;width:280px;background:#fff;
+  z-index:500;box-shadow:-4px 0 20px rgba(0,0,0,.15);transform:translateX(100%);transition:.3s;
+  display:flex;flex-direction:column}
+.side-menu.open{transform:translateX(0)}
+.side-overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:499;display:none}
+.side-overlay.open{display:block}
+.side-hdr{background:#1F3864;color:#fff;padding:16px;font-size:15px;font-weight:700;
+  display:flex;align-items:center;justify-content:space-between}
+.side-close{background:none;border:none;color:#fff;font-size:20px;cursor:pointer}
+.side-body{padding:16px;flex:1;overflow-y:auto}
+.side-section{margin-bottom:20px}
+.side-section-title{font-size:12px;font-weight:700;color:#888;text-transform:uppercase;margin-bottom:10px;letter-spacing:.5px}
+.side-btn{width:100%;padding:11px 14px;border:2px solid #D0D9E8;border-radius:8px;
+  background:#fff;cursor:pointer;font-size:13px;font-family:inherit;text-align:right;
+  display:flex;align-items:center;gap:8px;transition:.2s;margin-bottom:8px;color:#222}
+.side-btn:hover{border-color:#2E75B6;background:#F0F7FF;color:#1F3864}
+.side-btn.danger{border-color:#FFCDD2;color:#C62828}
+.side-btn.danger:hover{background:#FFEBEE;border-color:#C62828}
+.side-info{font-size:12px;color:#888;line-height:1.6;background:#F5F5F5;border-radius:8px;padding:10px}
+
+/* ADD/IMPORT MODALS */
+.fab{position:fixed;bottom:22px;left:22px;background:#375623;color:#fff;border:none;
+  border-radius:50%;width:52px;height:52px;font-size:24px;cursor:pointer;
+  box-shadow:0 4px 14px rgba(0,0,0,.25);z-index:50;display:flex;align-items:center;justify-content:center;transition:.2s}
+.fab:hover{transform:scale(1.08)}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;display:none;justify-content:center;align-items:center;padding:16px}
+.ov.on{display:flex}
+.modal{background:#fff;border-radius:14px;padding:22px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto}
+.modal h2{font-size:16px;color:#1F3864;margin-bottom:18px}
+.fg{margin-bottom:14px}
+.fg label{display:block;font-size:12px;font-weight:600;color:#444;margin-bottom:5px}
+.fg input,.fg select{width:100%;padding:9px 12px;border:2px solid #D0D9E8;border-radius:8px;
+  font-size:13px;font-family:inherit;direction:rtl;outline:none;transition:.2s}
+.fg input:focus,.fg select:focus{border-color:#2E75B6}
+.mbtns{display:flex;gap:8px;margin-top:18px}
+.bsave{flex:1;padding:11px;background:#375623;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.bcanc{padding:11px 18px;background:#EEF2F7;color:#444;border:none;border-radius:8px;cursor:pointer;font-family:inherit}
+.new-tag{background:#C65911;color:#fff;font-size:10px;padding:1px 5px;border-radius:10px;margin-left:4px}
+
+.toast{position:fixed;bottom:82px;left:50%;transform:translateX(-50%) translateY(10px);
+  background:#333;color:#fff;padding:10px 22px;border-radius:8px;
+  font-size:13px;opacity:0;transition:.3s;z-index:300;pointer-events:none;white-space:nowrap}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+.toast.ok{background:#375623}.toast.err{background:#C65911}
+
+@media(max-width:580px){
+  .wh-grid{grid-template-columns:1fr 1fr}
+  .srow{flex-direction:column}
+  .sg{min-width:100%}
+  .btn-go,.btn-rst{width:100%}
+  td.s,td.w{display:none}
+}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-logo">🏛️</div>
+  <div class="hdr-text"><h1>مستودعات سيبكو – اللاذقية</h1><p>المؤسسة السورية للبناء والتشييد</p></div>
+  <div class="hdr-right">
+    <div class="hdr-count"><b id="hT">0</b>مادة</div>
+    <button class="hdr-menu" onclick="openMenu()" id="menuBtn" style="display:none">☰</button>
+  </div>
+</div>
+
+<!-- UPLOAD SCREEN -->
+<div class="upload-screen" id="uploadScreen">
+  <div class="upload-box" id="dropZone"
+       onclick="document.getElementById('fileInput').click()"
+       ondragover="ev(event,'drag')" ondragleave="ev(event,'')" ondrop="onDrop(event)">
+    <div class="upload-icon">📂</div>
+    <div class="upload-title">تحميل ملف الكتالوج</div>
+    <div class="upload-sub">
+      حمّلي ملف <strong>الكتالوج_الموحد.xlsx</strong><br>
+      أو أي ملف Excel يحتوي أعمدة:<br>
+      <strong>الرقم | اسم المادة | الوحدة</strong>
+    </div>
+    <button class="btn-upload">📂 اختر الملف</button>
+    <div class="upload-hint">أو اسحبي الملف وأفلتيه هنا</div>
+  </div>
+  <div class="local-info" id="localInfo"></div>
+  <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="onFile(this.files[0])">
+</div>
+
+<!-- PROGRESS -->
+<div class="progress-screen" id="progressScreen">
+  <div class="prog-box">
+    <div class="prog-icon">⏳</div>
+    <div class="prog-title" id="progTitle">جارٍ قراءة الملف...</div>
+    <div class="prog-bar"><div class="prog-fill" id="progFill" style="width:0%"></div></div>
+    <div class="prog-txt" id="progTxt">0%</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app-screen" id="appScreen">
+  <div class="spanel">
+    <div class="spanel-top">
+      <span class="spanel-title">🔍 بحث المواد</span>
+      <button class="btn-change" onclick="changeFile()">↺ تغيير الكتالوج</button>
+    </div>
+    <div class="srow">
+      <div class="sg"><label>المستودع (اختياري)</label>
+        <select id="fWh" onchange="onWh()"><option value="">── كل المستودعات ──</option></select></div>
+      <div class="sg"><label>القسم (اختياري)</label>
+        <select id="fSc"><option value="">── كل الأقسام ──</option></select></div>
+      <div class="sg" style="flex:2;min-width:180px"><label>اسم المادة أو رقمها</label>
+        <div class="kw-rel">
+          <input id="kw" type="text" placeholder="مثال: ازميل  أو  750300"
+            onkeydown="if(event.key==='Enter')doSearch()"
+            oninput="document.getElementById('kwx').style.display=this.value?'block':'none'">
+          <button class="kw-x" id="kwx" onclick="clrKw()">✕</button>
+        </div></div>
+      <div class="sg" style="min-width:125px"><label>نوع البحث</label>
+        <select id="fTp"><option value="c">يحتوي على</option><option value="s">يبدأ بـ</option><option value="e">ينتهي بـ</option></select></div>
+      <div class="sg" style="min-width:125px"><label>البحث في</label>
+        <select id="fFd"><option value="b">الاسم والرقم</option><option value="n">الاسم فقط</option><option value="d">الرقم فقط</option></select></div>
+      <button class="btn-go" onclick="doSearch()">🔍 بحث</button>
+      <button class="btn-rst" onclick="resetSearch()">↺</button>
+    </div>
+  </div>
+  <div class="rbar" id="rbar"></div>
+  <div class="content" id="content"></div>
+</div>
+
+<!-- SIDE MENU -->
+<div class="side-overlay" id="sideOverlay" onclick="closeMenu()"></div>
+<div class="side-menu" id="sideMenu">
+  <div class="side-hdr">
+    <span>⚙ الإعدادات والأدوات</span>
+    <button class="side-close" onclick="closeMenu()">✕</button>
+  </div>
+  <div class="side-body">
+    <div class="side-section">
+      <div class="side-section-title">إدارة المواد المضافة</div>
+      <button class="side-btn" onclick="exportLocal();closeMenu()">
+        📥 تصدير المواد المضافة (Excel)
+      </button>
+      <button class="side-btn" onclick="document.getElementById('importInput').click();closeMenu()">
+        📤 استيراد مواد من Excel
+      </button>
+      <button class="side-btn danger" onclick="confirmClearLocal()">
+        🗑 حذف كل المواد المضافة
+      </button>
+      <input type="file" id="importInput" accept=".xlsx,.xls" style="display:none" onchange="importLocal(this.files[0])">
+    </div>
+    <div class="side-section">
+      <div class="side-section-title">تحديث الكتالوج</div>
+      <button class="side-btn" onclick="closeMenu();changeFile()">
+        🔄 تحميل كتالوج محدّث
+      </button>
+      <button class="side-btn" onclick="closeMenu();mergeAndExport()">
+        🔗 دمج المضافة في الكتالوج وتصديره
+      </button>
+    </div>
+    <div class="side-section">
+      <div class="side-section-title">معلومات</div>
+      <div class="side-info" id="sideInfo">...</div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD MODAL -->
+<div class="ov" id="addOv">
+  <div class="modal">
+    <h2>➕ إضافة مادة جديدة</h2>
+    <div class="fg"><label>رقم المادة *</label><input id="nId" placeholder="مثال: 750990001"></div>
+    <div class="fg"><label>اسم المادة *</label><input id="nNm" placeholder="اسم المادة بالعربي"></div>
+    <div class="fg"><label>وحدة القياس</label><input id="nUn" placeholder="عدد / طن / متر ..."></div>
+    <div class="fg"><label>المستودع *</label>
+      <select id="nWh" onchange="fillNSec()"><option value="">── اختر ──</option></select></div>
+    <div class="fg"><label>القسم *</label>
+      <select id="nSc"><option value="">── اختر ──</option></select></div>
+    <div class="mbtns">
+      <button class="bcanc" onclick="closeAdd()">إلغاء</button>
+      <button class="bsave" onclick="saveItem()">💾 حفظ</button>
+    </div>
+  </div>
+</div>
+
+<button class="fab" onclick="openAdd()" id="fabBtn" style="display:none">➕</button>
+<div class="toast" id="toast"></div>
+
+<script>
+const WH_CFG = [
+  {name:'مستودع التعهدات',       color:'#1F3864',light:'#DEEAF1',icon:'🏗️',
+   codes:['71','72','73','74','75','76','77','78','79','80','81','82','83','84','85','86','87','91']},
+  {name:'مستودع الثوابت',        color:'#375623',light:'#E2EFDA',icon:'📦',codes:['50','61','62','64','66']},
+  {name:'مستودع الآليات',        color:'#7B3F00',light:'#FAE5D3',icon:'🚜',codes:['70']},
+  {name:'مستودع الأطر والمدخرات',color:'#4B0082',light:'#EDE7F6',icon:'🔋',codes:['88','89']},
+  {name:'مستودع المحروقات',      color:'#C65911',light:'#FCE4D6',icon:'⛽',codes:['90']},
+];
+const SM = {
+  '50':'مواد عدة مراقبة مصروفة','61':'أثاث ومفروشات','62':'عدة وأدوات',
+  '64':'أجهزة كهربائية','66':'مواد مشاريع','70':'آليات ومعدات',
+  '71':'مواد رئيسية وإحضارات','72':'مواد أخشاب','73':'البواري',
+  '74':'معادن','75':'مواد صعبة','76':'مواد كهربائية','77':'مواد دهان',
+  '78':'خردوات','79':'عدد وأدوات صغيرة','80':'لوازم منزلية ومكاتب',
+  '81':'مطبوعات وتوابعها','82':'أدوية وإسعافات','83':'ألبسة',
+  '84':'متفجرات','85':'مواد كيميائية','86':'فوارغ','87':'مواد مصنعة',
+  '88':'الأطر','89':'المدخرات','90':'محروقات وزيوت','91':'زراعية',
+};
+
+const PAGE = 100;
+let DB = {};
+let local = JSON.parse(localStorage.getItem('sebcoItems')||'[]');
+let selWh=null,selSec=null,bPage=1,sPage=1,srchRes=null,browseIt=null;
+
+// ── عرض معلومات عند شاشة الرفع ──────────────────────────────────────────────
+window.onload = () => {
+  if (local.length > 0) {
+    const el = document.getElementById('localInfo');
+    el.style.display = 'block';
+    el.innerHTML = `💾 لديك <strong>${local.length}</strong> مادة مضافة محفوظة ستظهر تلقائياً بعد تحميل الكتالوج`;
+  }
+};
+
+// ── تحميل الملف ──────────────────────────────────────────────────────────────
+function ev(e,cls){e.preventDefault();document.getElementById('dropZone').className='upload-box'+(cls?' '+cls:'');}
+function onDrop(e){e.preventDefault();document.getElementById('dropZone').className='upload-box';const f=e.dataTransfer.files[0];if(f)onFile(f);}
+
+function onFile(file) {
+  if (!file) return;
+  if (!file.name.match(/\.xlsx?$/i)) { toast('يرجى اختيار ملف Excel (.xlsx)','err'); return; }
+  document.getElementById('uploadScreen').style.display='none';
+  document.getElementById('progressScreen').style.display='flex';
+  document.getElementById('progTitle').textContent = 'جارٍ قراءة: ' + file.name;
+  const reader = new FileReader();
+  reader.onload = e => {
+    setProg(30,'جارٍ تحليل البيانات...');
+    setTimeout(()=>{
+      try {
+        const wb = XLSX.read(e.target.result,{type:'array'});
+        setProg(60,'جارٍ تنظيم المواد...');
+        setTimeout(()=>{ processRows(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''})); },50);
+      } catch(err) { toast('خطأ في قراءة الملف','err'); changeFile(); }
+    },50);
+  };
+  reader.readAsArrayBuffer(file);
+  setProg(10,'جارٍ قراءة الملف...');
+}
+
+function setProg(pct,txt){
+  document.getElementById('progFill').style.width=pct+'%';
+  document.getElementById('progTxt').textContent=txt||pct+'%';
+}
+
+function processRows(rows) {
+  DB = {};
+  let count = 0;
+  let start = 0;
+  // تخطي رؤوس الأعمدة
+  for (let i=0;i<Math.min(3,rows.length);i++){
+    if(rows[i]&&(String(rows[i][0]).includes('رقم')||String(rows[i][0]).includes('الرقم'))){start=i+1;break;}
+  }
+  for (let i=start; i<rows.length; i++) {
+    const row=rows[i];
+    const id=String(row[0]||'').trim().replace(/\.0$/,'');
+    const name=String(row[1]||'').trim();
+    const unit=String(row[2]||'عدد').trim();
+    if(!id||!name||id==='undefined'||isNaN(parseInt(id)))continue;
+    const code=id.substring(0,2);
+    if(!DB[code])DB[code]=[];
+    DB[code].push([id,name,unit]);
+    count++;
+  }
+  setProg(90,'جارٍ التهيئة...');
+  setTimeout(()=>{
+    setProg(100,'اكتمل ✅');
+    document.getElementById('hT').textContent=(count+local.length).toLocaleString();
+    initApp(count);
+    setTimeout(()=>{
+      document.getElementById('progressScreen').style.display='none';
+      document.getElementById('appScreen').style.display='block';
+      document.getElementById('fabBtn').style.display='flex';
+      document.getElementById('menuBtn').style.display='flex';
+    },300);
+  },100);
+}
+
+function initApp(count) {
+  const fw=document.getElementById('fWh'), nw=document.getElementById('nWh');
+  fw.innerHTML='<option value="">── كل المستودعات ──</option>';
+  nw.innerHTML='<option value="">── اختر ──</option>';
+  WH_CFG.forEach((w,i)=>{
+    const tot=w.codes.reduce((s,c)=>s+(DB[c]?DB[c].length:0),0);
+    if(tot===0)return;
+    [fw,nw].forEach(sel=>{
+      const o=document.createElement('option');
+      o.value=i; o.textContent=w.icon+' '+w.name+' ('+tot.toLocaleString()+')';
+      sel.appendChild(o);
+    });
+  });
+  updateSideInfo(count);
+  selWh=null;selSec=null;srchRes=null;browseIt=null;
+  renderHome();
+}
+
+function updateSideInfo(catalogCount) {
+  const total = Object.values(DB).reduce((a,b)=>a+b.length,0) || catalogCount || 0;
+  document.getElementById('sideInfo').innerHTML =
+    `📦 مواد الكتالوج: <strong>${total.toLocaleString()}</strong><br>` +
+    `➕ مواد مضافة: <strong>${local.length}</strong><br>` +
+    `📊 الإجمالي: <strong>${(total+local.length).toLocaleString()}</strong>`;
+}
+
+function changeFile() {
+  document.getElementById('appScreen').style.display='none';
+  document.getElementById('fabBtn').style.display='none';
+  document.getElementById('menuBtn').style.display='none';
+  document.getElementById('uploadScreen').style.display='flex';
+  document.getElementById('fileInput').value='';
+  DB={};selWh=null;selSec=null;srchRes=null;browseIt=null;
+  hideRbar();
+}
+
+// ── SIDE MENU ─────────────────────────────────────────────────────────────────
+function openMenu(){
+  updateSideInfo();
+  document.getElementById('sideMenu').classList.add('open');
+  document.getElementById('sideOverlay').classList.add('open');
+}
+function closeMenu(){
+  document.getElementById('sideMenu').classList.remove('open');
+  document.getElementById('sideOverlay').classList.remove('open');
+}
+
+// ── تصدير المواد المضافة ──────────────────────────────────────────────────────
+function exportLocal() {
+  if (local.length===0){toast('لا توجد مواد مضافة للتصدير','err');return;}
+  const rows=[['الرقم','اسم المادة','الوحدة','القسم','المستودع','تاريخ الإضافة']];
+  local.forEach(i=>{
+    const wName = WH_CFG[i.wi]?.name||'';
+    const sName = SM[i.code]||i.code;
+    rows.push([i.id,i.name,i.unit||'عدد',sName,wName,i.date||'']);
+  });
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:15},{wch:40},{wch:10},{wch:25},{wch:25},{wch:15}];
+  XLSX.utils.book_append_sheet(wb,ws,'المواد المضافة');
+  XLSX.writeFile(wb,'المواد_المضافة_'+new Date().toLocaleDateString('ar-SY').replace(/\//g,'-')+'.xlsx');
+  toast('✅ تم تصدير '+local.length+' مادة','ok');
+}
+
+// ── دمج المضافة في الكتالوج وتصديره ─────────────────────────────────────────
+function mergeAndExport() {
+  if (Object.keys(DB).length===0){toast('يرجى تحميل الكتالوج أولاً','err');return;}
+  const rows=[['الرقم','اسم المادة','الوحدة']];
+  // كل مواد DB
+  Object.values(DB).forEach(items=>items.forEach(i=>rows.push([i[0],i[1],i[2]])));
+  // المواد المضافة (غير مكررة)
+  const existingIds = new Set(Object.values(DB).flat().map(i=>i[0]));
+  local.forEach(i=>{ if(!existingIds.has(i.id)) rows.push([i.id,i.name,i.unit||'عدد']); });
+  const wb=XLSX.utils.book_new();
+  const ws=XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols']=[{wch:15},{wch:50},{wch:12}];
+  XLSX.utils.book_append_sheet(wb,ws,'الكتالوج الموحد');
+  XLSX.writeFile(wb,'الكتالوج_الموحد_محدّث_'+new Date().toLocaleDateString('ar-SY').replace(/\//g,'-')+'.xlsx');
+  toast('✅ تم تصدير الكتالوج الموحد ('+( rows.length-1).toLocaleString()+' مادة)','ok');
+}
+
+// ── استيراد مواد من Excel ──────────────────────────────────────────────────────
+function importLocal(file) {
+  if (!file) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    try {
+      const wb=XLSX.read(e.target.result,{type:'array'});
+      const rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{header:1,defval:''});
+      let added=0, skipped=0;
+      const existingIds=new Set([...Object.values(DB).flat().map(i=>i[0]),...local.map(i=>i.id)]);
+      // تخطي رأس الجدول
+      for(let i=1;i<rows.length;i++){
+        const row=rows[i];
+        const id=String(row[0]||'').trim().replace(/\.0$/,'');
+        const name=String(row[1]||'').trim();
+        const unit=String(row[2]||'عدد').trim();
+        if(!id||!name)continue;
+        if(existingIds.has(id)){skipped++;continue;}
+        // تحديد القسم والمستودع
+        const code=id.substring(0,2);
+        const wi=WH_CFG.findIndex(w=>w.codes.includes(code));
+        local.push({id,name,unit,code,wi:wi>=0?wi:0,date:new Date().toLocaleDateString('ar-SY')});
+        existingIds.add(id);
+        added++;
+      }
+      localStorage.setItem('sebcoItems',JSON.stringify(local));
+      const total=Object.values(DB).reduce((a,b)=>a+b.length,0)+local.length;
+      document.getElementById('hT').textContent=total.toLocaleString();
+      toast(`✅ تم استيراد ${added} مادة${skipped>0?' (تجاهل '+skipped+' مكررة)':''}`, 'ok');
+      updateSideInfo();
+      renderHome();
+    } catch(err){toast('خطأ في قراءة الملف','err');}
+  };
+  reader.readAsArrayBuffer(file);
+  document.getElementById('importInput').value='';
+}
+
+// ── حذف المواد المضافة ───────────────────────────────────────────────────────
+function confirmClearLocal() {
+  closeMenu();
+  if (local.length===0){toast('لا توجد مواد مضافة','err');return;}
+  if (confirm(`هل أنتِ متأكدة من حذف ${local.length} مادة مضافة؟ لا يمكن التراجع.`)) {
+    local=[];
+    localStorage.removeItem('sebcoItems');
+    const total=Object.values(DB).reduce((a,b)=>a+b.length,0);
+    document.getElementById('hT').textContent=total.toLocaleString();
+    toast('تم حذف كل المواد المضافة','ok');
+    updateSideInfo();
+    renderHome();
+  }
+}
+
+// ── الصفحة الرئيسية ──────────────────────────────────────────────────────────
+function renderHome(){
+  let h='<div class="wh-grid">';
+  WH_CFG.forEach((w,i)=>{
+    const tot=w.codes.reduce((s,c)=>s+(DB[c]?DB[c].length:0),0)+local.filter(l=>l.wi===i).length;
+    if(tot===0)return;
+    const sel=selWh===i;
+    h+=`<div class="wh-card ${sel?'sel':''}"
+      style="border-top-color:${w.color};${sel?'box-shadow:0 4px 18px '+w.color+'55':''}"
+      onclick="clickWh(${i})">
+      <div class="wh-icon">${w.icon}</div>
+      <div class="wh-name">${w.name}</div>
+      <div class="wh-cnt">${tot.toLocaleString()} مادة · ${w.codes.filter(c=>DB[c]&&DB[c].length>0).length} قسم</div>
+    </div>`;
+  });
+  h+='</div>';
+  if(selWh!==null)h+=renderSecs();
+  h+='<div id="tA"></div>';
+  document.getElementById('content').innerHTML=h;
+  if(selSec!==null&&browseIt)renderBrowseTbl();
+}
+
+function renderSecs(){
+  const w=WH_CFG[selWh];
+  let h=`<div class="sec-box"><div class="sec-hdr" style="background:${w.color}">${w.icon} ${w.name} – الأقسام</div><div class="sec-chips">`;
+  w.codes.forEach(c=>{
+    const cnt=(DB[c]?DB[c].length:0)+local.filter(l=>l.code===c).length;
+    if(cnt===0)return;
+    const act=selSec===c;
+    h+=`<div class="chip" style="background:${act?w.color:w.light};color:${act?'#fff':w.color};border-color:${w.color}" onclick="clickSec('${c}')">
+      ${c} – ${SM[c]||c} <span style="opacity:.7;font-size:11px">(${cnt.toLocaleString()})</span></div>`;
+  });
+  h+='</div></div>';
+  return h;
+}
+
+function clickWh(i){
+  selWh=(selWh===i)?null:i;selSec=null;bPage=1;srchRes=null;browseIt=null;
+  hideRbar();renderHome();
+  if(selWh!==null)setTimeout(()=>document.querySelector('.sec-box')?.scrollIntoView({behavior:'smooth',block:'nearest'}),60);
+}
+
+function clickSec(c){
+  selSec=(selSec===c)?null:c;bPage=1;srchRes=null;hideRbar();
+  browseIt=selSec?[...(DB[c]||[]),...local.filter(l=>l.code===c).map(l=>[l.id,l.name,l.unit||'عدد','','',true])]:null;
+  renderHome();
+  if(selSec)setTimeout(()=>document.getElementById('tA')?.scrollIntoView({behavior:'smooth',block:'start'}),60);
+}
+
+function renderBrowseTbl(){
+  const ta=document.getElementById('tA');
+  if(!ta||!browseIt)return;
+  ta.innerHTML=buildTbl(browseIt,bPage,'bp',false);
+}
+
+// ── القوائم ───────────────────────────────────────────────────────────────────
+function onWh(){
+  const wi=document.getElementById('fWh').value;
+  const fs=document.getElementById('fSc');
+  fs.innerHTML='<option value="">── كل الأقسام ──</option>';
+  if(wi==='')return;
+  WH_CFG[parseInt(wi)].codes.forEach(c=>{
+    if(!DB[c]||DB[c].length===0)return;
+    const o=document.createElement('option');
+    o.value=c;o.textContent=c+' – '+(SM[c]||c)+' ('+DB[c].length.toLocaleString()+')';
+    fs.appendChild(o);
+  });
+}
+function fillNSec(){
+  const wi=parseInt(document.getElementById('nWh').value);
+  const ns=document.getElementById('nSc');
+  ns.innerHTML='<option value="">── اختر ──</option>';
+  if(isNaN(wi))return;
+  WH_CFG[wi].codes.forEach(c=>{
+    const o=document.createElement('option');o.value=c;o.textContent=c+' – '+(SM[c]||c);ns.appendChild(o);
+  });
+}
+
+// ── البحث ────────────────────────────────────────────────────────────────────
+function doSearch(){
+  const kw=document.getElementById('kw').value.trim();
+  const wi=document.getElementById('fWh').value;
+  const sc=document.getElementById('fSc').value;
+  const tp=document.getElementById('fTp').value;
+  const fd=document.getElementById('fFd').value;
+  if(!kw&&wi===''&&sc===''){toast('حدّدي مستودعاً أو أدخلي كلمة بحث','err');return;}
+  let codes=sc!==''?[sc]:wi!==''?WH_CFG[parseInt(wi)].codes:Object.keys(DB);
+  const kwL=kw.toLowerCase(),res=[];
+  codes.forEach(code=>{
+    const secName=SM[code]||code;
+    const wObj=WH_CFG.find(w=>w.codes.includes(code));
+    const whName=wObj?wObj.name:'';
+    (DB[code]||[]).forEach(item=>{
+      if(!kw){res.push([item[0],item[1],item[2],secName,whName]);return;}
+      let m=false;
+      const nm=item[1].toLowerCase(),cd=item[0];
+      const cn=fd==='b'||fd==='n',cc=fd==='b'||fd==='d';
+      if(tp==='c'){if(cn&&nm.includes(kwL))m=true;if(cc&&cd.includes(kw))m=true;}
+      else if(tp==='s'){if(cn&&nm.startsWith(kwL))m=true;if(cc&&cd.startsWith(kw))m=true;}
+      else{if(cn&&nm.endsWith(kwL))m=true;if(cc&&cd.endsWith(kw))m=true;}
+      if(m)res.push([item[0],item[1],item[2],secName,whName]);
+    });
+  });
+  local.forEach(l=>{
+    if(!codes.includes(l.code))return;
+    if(!kw){res.push([l.id,l.name,l.unit||'عدد',SM[l.code]||l.code,'',true]);return;}
+    let m=false;const nm=l.name.toLowerCase();
+    const cn=fd==='b'||fd==='n',cc=fd==='b'||fd==='d';
+    if(tp==='c'){if(cn&&nm.includes(kwL))m=true;if(cc&&l.id.includes(kw))m=true;}
+    else if(tp==='s'){if(cn&&nm.startsWith(kwL))m=true;if(cc&&l.id.startsWith(kw))m=true;}
+    else{if(cn&&nm.endsWith(kwL))m=true;if(cc&&l.id.endsWith(kw))m=true;}
+    if(m)res.push([l.id,l.name,l.unit||'عدد',SM[l.code]||l.code,'',true]);
+  });
+  srchRes=res;sPage=1;
+  showRbar(res.length,kw);
+  selWh=null;selSec=null;browseIt=null;
+  document.getElementById('content').innerHTML=buildTbl(res,1,'sp',true,kw,tp);
+}
+
+function showRbar(n,kw){
+  const el=document.getElementById('rbar');el.style.display='block';
+  if(n>0){el.style.background='#E8F5E9';el.style.color='#375623';
+    el.textContent='✅ '+n.toLocaleString()+' نتيجة'+(kw?' للكلمة: "'+kw+'"':'');}
+  else{el.style.background='#FFEBEE';el.style.color='#C62828';
+    el.textContent='❌ لا توجد نتائج'+(kw?' للكلمة: "'+kw+'"':'');}
+}
+function hideRbar(){document.getElementById('rbar').style.display='none';}
+function resetSearch(){
+  document.getElementById('kw').value='';document.getElementById('kwx').style.display='none';
+  document.getElementById('fWh').value='';
+  document.getElementById('fSc').innerHTML='<option value="">── كل الأقسام ──</option>';
+  selWh=null;selSec=null;srchRes=null;browseIt=null;hideRbar();renderHome();
+}
+function clrKw(){document.getElementById('kw').value='';document.getElementById('kwx').style.display='none';}
+
+// ── الجدول ───────────────────────────────────────────────────────────────────
+function buildTbl(items,page,fn,showMeta,kw='',tp='c'){
+  if(!items||!items.length)return'<div class="empty"><div class="empty-icon">🔍</div><p>لا توجد نتائج</p></div>';
+  const total=items.length,start=(page-1)*PAGE;
+  const pg=items.slice(start,start+PAGE),totPg=Math.ceil(total/PAGE);
+  const kwL=kw.toLowerCase(),fd=document.getElementById('fFd').value;
+  function hl(t,isN){
+    if(!kw||tp!=='c')return t;
+    if(isN&&fd==='d')return t;if(!isN&&fd==='n')return t;
+    const idx=t.toLowerCase().indexOf(kwL);if(idx<0)return t;
+    return t.slice(0,idx)+'<mark>'+t.slice(idx,idx+kw.length)+'</mark>'+t.slice(idx+kw.length);
+  }
+  const title=fn==='bp'?(SM[selSec]||selSec||''):'نتائج البحث';
+  let h=`<div class="tbl-box"><div class="tbl-top">
+    <span class="tbl-ttl">${title}</span>
+    <span class="tbl-cnt">${total.toLocaleString()} مادة</span></div>
+    <div class="tbl-scroll"><table><thead><tr>
+    <th style="width:40px">#</th><th style="width:110px">الرقم</th>
+    <th class="nc">اسم المادة</th><th style="width:65px">الوحدة</th>`;
+  if(showMeta)h+=`<th style="width:130px">القسم</th><th style="width:120px">المستودع</th>`;
+  h+='</tr></thead><tbody>';
+  pg.forEach((item,idx)=>{
+    const n=start+idx+1,isNew=item[5];
+    h+=`<tr><td class="i">${n}</td><td class="c">${hl(item[0],false)}</td>
+      <td class="n">${isNew?'<span class="new-tag">جديد</span>':''}${hl(item[1],true)}</td>
+      <td class="u">${item[2]||''}</td>`;
+    if(showMeta)h+=`<td class="s">${item[3]||''}</td><td class="w">${item[4]||''}</td>`;
+    h+='</tr>';
+  });
+  h+='</tbody></table></div>';
+  if(totPg>1)h+=buildPager(page,totPg,fn);
+  h+='</div>';
+  return h;
+}
+function buildPager(page,total,fn){
+  let h='<div class="pager">';
+  h+=`<button class="pb" onclick="${fn}(${page-1})" ${page<=1?'disabled':''}>‹ السابق</button>`;
+  const s=Math.max(1,page-2),e=Math.min(total,s+4);
+  if(s>1)h+=`<button class="pb" onclick="${fn}(1)">1</button>${s>2?'<span style="padding:0 4px">…</span>':''}`;
+  for(let p=s;p<=e;p++)h+=`<button class="pb ${p===page?'a':''}" onclick="${fn}(${p})">${p}</button>`;
+  if(e<total)h+=`${e<total-1?'<span style="padding:0 4px">…</span>':''}<button class="pb" onclick="${fn}(${total})">${total}</button>`;
+  h+=`<button class="pb" onclick="${fn}(${page+1})" ${page>=total?'disabled':''}>التالي ›</button>
+    <span class="pi">صفحة ${page} من ${total}</span></div>`;
+  return h;
+}
+function bp(p){bPage=p;renderBrowseTbl();document.getElementById('tA')?.scrollIntoView({behavior:'smooth',block:'start'});}
+function sp(p){
+  sPage=p;
+  const kw=document.getElementById('kw').value.trim(),tp=document.getElementById('fTp').value;
+  document.getElementById('content').innerHTML=buildTbl(srchRes,p,'sp',true,kw,tp);
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ── إضافة مادة ───────────────────────────────────────────────────────────────
+function openAdd(){document.getElementById('addOv').classList.add('on');}
+function closeAdd(){
+  document.getElementById('addOv').classList.remove('on');
+  ['nId','nNm','nUn'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('nWh').value='';
+  document.getElementById('nSc').innerHTML='<option value="">── اختر ──</option>';
+}
+function saveItem(){
+  const id=document.getElementById('nId').value.trim();
+  const nm=document.getElementById('nNm').value.trim();
+  const un=document.getElementById('nUn').value.trim()||'عدد';
+  const wi=document.getElementById('nWh').value;
+  const sc=document.getElementById('nSc').value;
+  if(!id||!nm||wi===''||!sc){toast('يرجى تعبئة الحقول الإلزامية *','err');return;}
+  if(local.find(i=>i.id===id)){toast('رقم المادة موجود مسبقاً!','err');return;}
+  local.push({id,name:nm,unit:un,code:sc,wi:parseInt(wi),date:new Date().toLocaleDateString('ar-SY')});
+  localStorage.setItem('sebcoItems',JSON.stringify(local));
+  closeAdd();
+  toast('✅ تمت إضافة المادة بنجاح','ok');
+  const total=Object.values(DB).reduce((a,b)=>a+b.length,0)+local.length;
+  document.getElementById('hT').textContent=total.toLocaleString();
+  updateSideInfo();
+  renderHome();
+}
+
+function toast(msg,type=''){
+  const el=document.getElementById('toast');
+  el.textContent=msg;el.className='toast '+type+' on';
+  setTimeout(()=>el.className='toast',3200);
+}
+</script>
+</body>
+</html>
